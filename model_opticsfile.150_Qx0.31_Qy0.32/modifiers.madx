@@ -1,0 +1,2 @@
+call,file="/home/eirik/CERN/lhc2018/2018/IR7-Run3seqedit.madx";
+ call,file="/home/eirik/CERN/lhc2018/2018/optic2022/opticsfile.150";

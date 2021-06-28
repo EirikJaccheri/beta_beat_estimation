@@ -1,0 +1,7 @@
+select, flag = error, class = multipole, pattern = $mcsx.3r1;
+efcomp, order = 2, dks := {0,0,0.8e-3};
+ESAVE, FILE="outputfiles/feedown3r1.out";
+
+select, flag = error, class = multipole, pattern = $mcsx.3r5;
+efcomp, order = 2, dkn := {0,0,0.8e-3};
+ESAVE, FILE="outputfiles/feedown3r5.out";

@@ -1,0 +1,34 @@
+system,"ln -fns %lhc_path lhc";
+
+Option, -echo,-warn,-info;
+call,file="lhc/lhc_as-built.seq";
+call,file="lhc/toolkit/macro.madx";
+call,file="lhc/optic2022/%opticsfile";
+
+
+Option, echo,warn,info;
+exec,mk_beam(6500);
+use, sequence=lhcb1;
+
+if (%correct == 1){
+call, file = "outputfiles/changeparameters_iter_correct.madx";
+}
+
+select, flag = error, clear = true;
+
+!adding quadrupole error
+select, flag = error, class = %quad_component, pattern = %quad_pattern;
+efcomp, order = 2, dkn = {0,%quad_strength};
+ESAVE, FILE="outputfiles/quad_errors.out";
+
+
+MATCH, SEQUENCE=lhcb1;
+VARY, NAME=dQx.b1, STEP=1.0E-5;
+VARY, NAME=dQy.b1, STEP=1.0E-5;
+CONSTRAINT, SEQUENCE=lhcb1, RANGE=#e, MUX=%QX, MUY=%QY;
+LMDIF, CALLS=100, TOLERANCE=0.0000001;
+endmatch;
+
+select, flag = twiss,column=name, s, betx, bety, mux, muy, alfx, alfy, pattern =%twiss_pattern;
+twiss, file="outputfiles/twiss.dat";
+stop;

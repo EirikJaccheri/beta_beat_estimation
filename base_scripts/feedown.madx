@@ -1,0 +1,35 @@
+system,"ln -fns /home/eirik/CERN/lhc2018/2018/ lhc";
+
+Option, -echo,-warn,-info;
+call,file="lhc/lhc_as-built.seq";
+call,file="lhc/IR7-Run3seqedit.madx";
+call,file="lhc/toolkit/macro.madx";
+call,file="lhc/optic2022/opticsfile.180";
+Option, echo,warn,info;
+call,file="/home/eirik/CERN/beta_beat_estimation/base_scripts/andreas_macros.madx";
+
+
+Option, echo,warn,info;
+exec,mk_beam(6500);
+use, sequence=lhcb1;
+
+!mcsx_one_str = 1e-3;
+!mcsx_five_str = 1e-3;
+
+select, flag = error, class = multipole, pattern = mcsx.3r1;
+efcomp, order = 2, dks := {0,0,0.8e-3};
+ESAVE, FILE="outputfiles/feedown3r1.out";
+
+select, flag = error, class = multipole, pattern = mcsx.3r5;
+efcomp, order = 2, dkn := {0,0,0.8e-3};
+ESAVE, FILE="outputfiles/feedown3r5.out";
+
+
+show, MCSX.3R1;
+show, MCSX.3R5;
+
+!select, flag = twiss, pattern = ^IP1$;
+!select, flag = twiss, pattern = ^IP5$;
+select, flag = twiss,column=name, s, betx, bety, mux, muy, alfx, alfy, x , y, pattern =BPM;
+twiss, file="outputfiles/twiss_feedown.dat";
+stop;
