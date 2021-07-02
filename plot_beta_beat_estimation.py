@@ -11,10 +11,16 @@ FONTSIZE = 16
 COLOR_X = u'#1f77b4'
 COLOR_Y = u'#ff7f0e'
 
-B1_CORRECTOR_PATH = "/home/eirik/CERN/omc3/omc3/model/accelerators/lhc/2012/correctors/correctors_b1/beta_correctors.json"
-		
-def plot_correction_correlation(correction_dict_pickle, outputfile_dir, variable_categories, seed = "0", opticsfile_comparison="opticsfile.180"):
-	with open(f"{outputfile_dir}/{correction_dict_pickle}","rb") as p:
+"""
+B1_CORRECTOR_PATH copied from:
+/omc3/model/accelerators/lhc/2012/correctors/correctors_b1/beta_correctors.json
+"""	
+B1_CORRECTOR_PATH = "beta_correctors.json" 
+
+
+	
+def plot_correction_correlation(correction_dict_pickle, outputfile_dir, variable_categories, proton, seed = "0", opticsfile_comparison="opticsfile.180"):
+	with open(f"{outputfile_dir}{correction_dict_pickle}","rb") as p:
                 correction_dict_seed = pickle.load(p)
 	
 	strength_dict = {}
@@ -26,7 +32,7 @@ def plot_correction_correlation(correction_dict_pickle, outputfile_dir, variable
     		data = f.read()
 	families = json.loads(data)
 	
-	beta_star_l = np.array([100*_get_beta_star(opticsfile) for opticsfile in strength_dict.keys()])
+	beta_star_l = np.array([100*_get_beta_star(proton, opticsfile) for opticsfile in strength_dict.keys()])
 	
 	color_dict = {"MQM" : COLOR_X , "MQY" : COLOR_Y}
 	
@@ -45,7 +51,7 @@ def plot_correction_correlation(correction_dict_pickle, outputfile_dir, variable
 	ax.legend(fontsize=20)
 	
 	unit = "$\,[10^{-5} \, m^{-2}]$"
-	beta_star = f"{int(100*_get_beta_star(opticsfile_comparison))}cm"
+	beta_star = f"{int(100*_get_beta_star(proton, opticsfile_comparison))}cm"
 	ax.set_xlabel(f"$K_1^{{60cm}}${unit}", fontsize = FONTSIZE)
 	ax.set_ylabel(fr"$\left(K_1^{{{beta_star}}} - K_1^{{60cm}}\right)${unit}",fontsize = FONTSIZE)
 	ax.set_xlim(-5,5)
@@ -72,24 +78,24 @@ def _get_strength_dict(correction):
 	return strength_dict			
 		
 			
-def plot_correction_ramp(opticsfiles,opticsfiles_correction,savename):
+def plot_correction_ramp(opticsfiles, opticsfiles_correction, savename, proton):
 	correction_weights = {opticsfile : np.zeros(len(opticsfiles)) for opticsfile in opticsfiles_correction}
 	beta_star_l = []
 	for i , opticsfile in enumerate(opticsfiles):
-		beta_star_l.append(_get_beta_star(opticsfile))
+		beta_star_l.append(_get_beta_star(proton, opticsfile))
 	
 		weight_dict = _get_weight_dict(opticsfile, opticsfiles_correction)
 		for key in weight_dict:
 			correction_weights[key][i] = weight_dict[key]
 	
-	
+	beta_star_l = np.array(beta_star_l)
 	
 	fig , ax = plt.subplots()
 	for correction in np.flip(opticsfiles_correction):
-		ax.plot(beta_star_l * 100, correction_weights[correction] * 100, label = fr"$\beta^* $ = {_get_beta_star(correction)*100}")
+		ax.plot(beta_star_l * 100, correction_weights[correction] * 100, label = fr"$\beta^* $ = {_get_beta_star(proton, correction)*100}")
 	
 	for optics in opticsfiles_correction:
-		beta_star_correction = _get_beta_star(optics)*100
+		beta_star_correction = _get_beta_star(proton, optics)*100
 		ax.axvline(x=beta_star_correction,linestyle="--",zorder=1,alpha=0.5,color = "black")
 	
 	ax.set_xlabel(r"$\beta^*\,$[cm]", fontsize=FONTSIZE)
@@ -136,7 +142,7 @@ def rms(x, axis=None):
     return np.sqrt(np.mean(x**2, axis=axis))
 
 def plot_magnet_strength(correction_dict_pickle, outputfile_dir, opticsfile, variable_categories, correction_path, method="max"):
-	with open(f"{outputfile_dir}/{correction_dict_pickle}","rb") as p:
+	with open(f"{outputfile_dir}{correction_dict_pickle}","rb") as p:
                 correction_dict_seed = pickle.load(p)
 	
 	strength_dict = {}
@@ -218,7 +224,7 @@ def plot_magnet_strength(correction_dict_pickle, outputfile_dir, opticsfile, var
 
 
 def plot_beta_beat(outputfile_dir, pickle_name, model_dir, savename, plane = "X"):
-	with open(f"{outputfile_dir}/{pickle_name}","rb") as p:
+	with open(f"{outputfile_dir}{pickle_name}","rb") as p:
                 multiple_correction_dict = pickle.load(p)
 	
 	model_df = tfs.read(f"{model_dir}twiss_elements.dat",index="NAME")
@@ -244,8 +250,8 @@ def plot_beta_beat(outputfile_dir, pickle_name, model_dir, savename, plane = "X"
 	plt.show()
 	
 
-def plot_optics_change(outputfile_dir, pickle_name, savename, opticsfiles_correction = [], method = "rms"):
-	with open(f"{outputfile_dir}/{pickle_name}","rb") as p:
+def plot_optics_change(outputfile_dir, pickle_name, savename, proton, opticsfiles_correction = [], method = "rms"):
+	with open(f"{outputfile_dir}{pickle_name}","rb") as p:
 		seed_dict = pickle.load(p)
 	
 	beta_star_l = []
@@ -263,7 +269,7 @@ def plot_optics_change(outputfile_dir, pickle_name, savename, opticsfiles_correc
 			if i == 0:
 				betx_beat_rms_l.append([_get_beta_beat(df,model_df,"X",method = method)])
 				bety_beat_rms_l.append([_get_beta_beat(df,model_df,"Y",method = method)])
-				beta_star_l.append(_get_beta_star(key))
+				beta_star_l.append(_get_beta_star(proton, key))
 			else:
 				betx_beat_rms_l[j].append(_get_beta_beat(df,model_df,"X",method = method))
 				bety_beat_rms_l[j].append(_get_beta_beat(df,model_df,"Y",method = method))
@@ -296,7 +302,7 @@ def plot_optics_change(outputfile_dir, pickle_name, savename, opticsfiles_correc
 	ax.plot(beta_star_l, bety_beat_rms_max_l,"x", label= r"max $\beta_y$", color = COLOR_Y)
 	
 	for optics in opticsfiles_correction:
-		beta_star_correction = _get_beta_star(optics)*100
+		beta_star_correction = _get_beta_star(proton, optics)*100
 		ax.axvline(x=beta_star_correction,linestyle="--",zorder=1,alpha=0.5,color = "black")
 	
 	ax.legend(fontsize = FONTSIZE)
@@ -309,8 +315,8 @@ def plot_optics_change(outputfile_dir, pickle_name, savename, opticsfiles_correc
 	plt.show()
 	
 	
-def plot_IP_optics_change(outputfile_dir, pickle_name, savename, opticsfiles_correction = []):
-	with open(f"{outputfile_dir}/{pickle_name}","rb") as p:
+def plot_IP_optics_change(outputfile_dir, pickle_name, savename, proton, opticsfiles_correction = []):
+	with open(f"{outputfile_dir}{pickle_name}","rb") as p:
 		seed_dict = pickle.load(p)
 	
 	beta_star_l = []
@@ -334,7 +340,7 @@ def plot_IP_optics_change(outputfile_dir, pickle_name, savename, opticsfiles_cor
 				bety_beat_IP1_l.append([_get_IP_beta_beat(df,model_df,"Y","IP1")])
 				betx_beat_IP5_l.append([_get_IP_beta_beat(df,model_df,"X","IP5")])
 				bety_beat_IP5_l.append([_get_IP_beta_beat(df,model_df,"Y","IP5")])
-				beta_star_l.append(_get_beta_star(key))
+				beta_star_l.append(_get_beta_star(proton, key))
 			else:
 				betx_beat_IP1_l[j].append(_get_IP_beta_beat(df,model_df,"X","IP1"))
 				bety_beat_IP1_l[j].append(_get_IP_beta_beat(df,model_df,"Y","IP1"))
@@ -407,7 +413,7 @@ def plot_IP_optics_change(outputfile_dir, pickle_name, savename, opticsfiles_cor
 	#ax2.set_ylim(-ylim5,ylim5)
 	
 	for optics in opticsfiles_correction:
-		beta_star_correction = _get_beta_star(optics)*100
+		beta_star_correction = _get_beta_star(proton, optics)*100
 		ax1.axvline(x=beta_star_correction,linestyle="--",zorder=1,alpha=0.5,color="black")
 		ax2.axvline(x=beta_star_correction,linestyle="--",zorder=1,alpha=0.5,color="black")
 		
@@ -415,8 +421,8 @@ def plot_IP_optics_change(outputfile_dir, pickle_name, savename, opticsfiles_cor
 	plt.savefig(f"plots/{savename}")
 	plt.show()
 
-def plot_IP8_optics_change(outputfile_dir, pickle_name, savename, opticsfiles_correction = []):
-	with open(f"{outputfile_dir}/{pickle_name}","rb") as p:
+def plot_IP8_optics_change(outputfile_dir, pickle_name, savename, proton, opticsfiles_correction = []):
+	with open(f"{outputfile_dir}{pickle_name}","rb") as p:
 		seed_dict = pickle.load(p)
 	
 	beta_star_l = []
@@ -435,7 +441,7 @@ def plot_IP8_optics_change(outputfile_dir, pickle_name, savename, opticsfiles_co
 			if i == 0:
 				betx_beat_IP8_l.append([_get_IP_beta_beat(df,model_df,"X","IP8")])
 				bety_beat_IP8_l.append([_get_IP_beta_beat(df,model_df,"Y","IP8")])
-				beta_star_l.append(_get_beta_star(key))
+				beta_star_l.append(_get_beta_star(proton, key))
 			else:
 				betx_beat_IP8_l[j].append(_get_IP_beta_beat(df,model_df,"X","IP8"))
 				bety_beat_IP8_l[j].append(_get_IP_beta_beat(df,model_df,"Y","IP8"))
@@ -474,7 +480,7 @@ def plot_IP8_optics_change(outputfile_dir, pickle_name, savename, opticsfiles_co
 
 
 	for optics in opticsfiles_correction:
-		beta_star_correction = _get_beta_star(optics)*100
+		beta_star_correction = _get_beta_star(proton, optics)*100
 		ax.axvline(x=beta_star_correction,linestyle="--",zorder=1,alpha=0.5,color="black")
 	
 		
@@ -483,8 +489,8 @@ def plot_IP8_optics_change(outputfile_dir, pickle_name, savename, opticsfiles_co
 	plt.show()
 	
 	
-def plot_lumi_optics_change(outputfile_dir, pickle_name, savename, opticsfiles_correction = []):
-	with open(f"{outputfile_dir}/{pickle_name}","rb") as p:
+def plot_lumi_optics_change(outputfile_dir, pickle_name, savename, proton, opticsfiles_correction = []):
+	with open(f"{outputfile_dir}{pickle_name}","rb") as p:
 		seed_dict = pickle.load(p)
 	
 	beta_star_l = []
@@ -507,7 +513,7 @@ def plot_lumi_optics_change(outputfile_dir, pickle_name, savename, opticsfiles_c
 				bety_IP1_l.append([df.loc["IP1","BETY"]])
 				betx_IP5_l.append([df.loc["IP5","BETX"]])
 				bety_IP5_l.append([df.loc["IP5","BETY"]])
-				beta_star_l.append(_get_beta_star(key))
+				beta_star_l.append(_get_beta_star(proton, key))
 			else:
 				betx_IP1_l[j].append(df.loc["IP1","BETX"])
 				bety_IP1_l[j].append(df.loc["IP1","BETY"])
@@ -546,7 +552,7 @@ def plot_lumi_optics_change(outputfile_dir, pickle_name, savename, opticsfiles_c
 	ax.tick_params(axis="y",labelsize=16)
 	
 	for optics in opticsfiles_correction:
-		beta_star_correction = _get_beta_star(optics)*100
+		beta_star_correction = _get_beta_star(proton, optics)*100
 		ax.axvline(x=beta_star_correction,linestyle="--",zorder=1,alpha=0.5,color="black")
 	
 	plt.tight_layout()
@@ -560,8 +566,6 @@ def plot_lumi_optics_change(outputfile_dir, pickle_name, savename, opticsfiles_c
 def absmaxND(a, axis=None):
     amax = a.max(axis)
     amin = a.min(axis)
-    print(amax)
-    print(amin)
     return np.where(-amin > amax, amin, amax)
 
 def _get_IP_beta_beat(df, model_df, plane, IP):
@@ -582,8 +586,8 @@ def _get_beta_beat(df,model_df,plane,method = "rms"):
 	
 	return method_dict[method](bb)
 		
-def _get_beta_star(opticsfile, optics_dir = "/home/eirik/CERN/lhc2018/2018/optic2022/"):
-	file1 = open(f"{optics_dir}{opticsfile}")
+def _get_beta_star( proton, opticsfile):
+	file1 = open(f"{proton}{opticsfile}")
 	beta_star = 0
 	for line in file1.readlines():
 		if line.startswith("betx_IP1"):

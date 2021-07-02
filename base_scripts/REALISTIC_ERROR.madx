@@ -1,12 +1,10 @@
-system,"ln -fns %lhc_path lhc";
-
 Option, -echo,-warn,-info;
-call,file="lhc/lhc_as-built.seq";
-call,file="lhc/IR7-Run3seqedit.madx";
-call,file="lhc/toolkit/macro.madx";
-call,file="lhc/%PROTON/%opticsfile";
+call,file="%lhc_path/lhc_as-built.seq";
+call,file="%lhc_path/IR7-Run3seqedit.madx";
+call,file="%lhc_path/toolkit/macro.madx";
+call,file="%PROTON%opticsfile";
 Option, echo,warn,info;
-call,file="/home/eirik/CERN/beta_beat_estimation/base_scripts/andreas_macros.madx";
+call,file="%working_dirbase_scripts/andreas_macros.madx";
 
 
 Option, echo,warn,info;
@@ -27,12 +25,12 @@ if (%feeddown == 1){
 SELECT, flag=error, clear;
 select, flag = error, class = multipole, pattern = mcsx.3r1;
 efcomp, order = 2, dks := {0,0,0.8e-3};
-ESAVE, FILE="outputfiles/feedown3r1.out";
+ESAVE, FILE="%working_diroutputfiles/feedown3r1.out";
 
 SELECT, flag=error, clear;
 select, flag = error, class = multipole, pattern = mcsx.3r5;
 efcomp, order = 2, dkn := {0,0,0.8e-3};
-ESAVE, FILE="outputfiles/feedown3r5.out";
+ESAVE, FILE="%working_diroutputfiles/feedown3r5.out";
 }
 
 MATCH, SEQUENCE=lhcb1;
@@ -43,12 +41,12 @@ LMDIF, CALLS=100, TOLERANCE=0.0000001;
 endmatch;
 
 if (%correct == 1){
-call, file = "outputfiles/changeparameters_iter_correct.madx";
+call, file = "%working_diroutputfiles/changeparameters_iter_correct.madx";
 }
 
 select, flag = twiss, pattern = ^IP1$;
 select, flag = twiss, pattern = ^IP5$;
 select, flag = twiss, pattern = ^IP8$;
 select, flag = twiss,column=name, s, betx, bety, mux, muy, alfx, alfy, k1l, pattern =%twiss_pattern;
-twiss, file="outputfiles/twiss.dat";
+twiss, file="%working_diroutputfiles/twiss.dat";
 stop;

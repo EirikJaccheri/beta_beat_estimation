@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import numpy as np
 import tfs
 import copy
@@ -21,22 +23,18 @@ from optics_functions.utils import prepare_twiss_dataframe
 CORRECT_FILE = "changeparameters_iter_correct.madx"     
 DELTA_Q_MIN = "deltaQmin"
 
-OMC3_DIR = "/home/eirik/CERN/omc3/omc3/"
-LHC_PATH = f"/home/eirik/CERN/lhc2018/2018/"
-VARIABLE_CATEGORIES = ["squeeze_knobs"]
-PYTHON3 = "python3"
 NAME = "NAME"
 
 
-def create_model_and_response(working_dir, outputfile_dir, model_dir, responsematrix, opticsfile, accel_settings, qx, qy, qx_driven, qy_driven, variable_categories,PROTON="PROTON",append_sequedit=False):
+def create_model_and_response(working_dir, outputfile_dir, model_dir, responsematrix, opticsfile, accel_settings, qx, qy, qx_driven, qy_driven, variable_categories, proton, lhc_path, seqedit = "IR7-Run3seqedit.madx", append_sequedit=False):
 	#accel settings is bad code..
 	if append_sequedit:
-		modifiers_path = f"{working_dir}{outputfile_dir}modifiers.madx"
-		modifiers_file = f"call,file=\"{LHC_PATH}IR7-Run3seqedit.madx\";\n call,file=\"{LHC_PATH}{PROTON}/{opticsfile}\";"
+		modifiers_path = f"{outputfile_dir}modifiers.madx"
+		modifiers_file = f"call,file=\"{lhc_path}{seqedit}\";\n call,file=\"{proton}{opticsfile}\";"
 		with open(modifiers_path,"w") as f:
 			f.write(modifiers_file) 
 	else:
-		modifiers_path = f"{LHC_PATH}{PROTON}/{opticsfile}"
+		modifiers_path = f"{proton}{opticsfile}"
 	
 	
 	create_instance_and_model(
@@ -51,12 +49,12 @@ def create_model_and_response(working_dir, outputfile_dir, model_dir, responsema
 	driven_excitation ="acd",
 	dpp = 0.,
 	modifiers = modifiers_path,
-	outputdir = f"{working_dir}{model_dir}",
-	writeto= f"{working_dir}{model_dir}job.twiss.madx",
-	logfile= f"{working_dir}{model_dir}madx_log.txt"
+	outputdir = model_dir,
+	writeto= f"{model_dir}job.twiss.madx",
+	logfile= f"{model_dir}madx_log.txt" 
 	)
 	
-	copy_opticsfile=f"cp {modifiers_path} {working_dir}{model_dir}modifiers.madx"
+	copy_opticsfile=f"cp {modifiers_path} {model_dir}modifiers.madx"
 	os.system(copy_opticsfile)
 
 	create_response_entrypoint(
@@ -64,7 +62,7 @@ def create_model_and_response(working_dir, outputfile_dir, model_dir, responsema
 		model_dir = model_dir,
 		delta_k = 0.00002,
 		variable_categories = variable_categories,\
-		outfile_path = f"{working_dir}{responsematrix}",
+		outfile_path = responsematrix,
 		)
 
 def get_correction_dict(correction_dict_pickle, seeds, opticsfiles_correction, base_script, change_dict, outputfile_dir, accel_settings, variable_categories, QX, QY, add_noise = False, iterations=1, optics_params=["MUX","MUY"],weights=[1.,1.]):
@@ -95,11 +93,11 @@ def get_correction_dict(correction_dict_pickle, seeds, opticsfiles_correction, b
 		for opticsfile , count in iteration_dict.items():
 			f.write('%s:%s\n' % (opticsfile, count))	
 		
-	with open(f"{outputfile_dir}/{correction_dict_pickle}","wb") as f:
+	with open(f"{outputfile_dir}{correction_dict_pickle}","wb") as f:
                 pickle.dump(correction_dict_seed,f)
 
 def get_twiss_optics(correction_dict_pickle, opticsfiles, opticsfiles_correction, base_script, change_dict, outputfile_dir ,pickle_name):
-	with open(f"{outputfile_dir}/{correction_dict_pickle}","rb") as p:
+	with open(f"{outputfile_dir}{correction_dict_pickle}","rb") as p:
                 correction_dict_seed = pickle.load(p)
 	
 	seed_dict = {}
@@ -137,7 +135,7 @@ def get_twiss_optics(correction_dict_pickle, opticsfiles, opticsfiles_correction
 		
 		seed_dict[seed] = twiss_dict
 		
-	with open(f"{outputfile_dir}/{pickle_name}","wb") as f:
+	with open(f"{outputfile_dir}{pickle_name}","wb") as f:
                 pickle.dump(seed_dict,f)
 
 
@@ -149,7 +147,7 @@ def get_corrections(base_script, change_dict, model_dir, responsematrix, outputf
         correction_dict = _get_correction_dict(base_script, change_dict, model_dir, responsematrix, outputfile_dir, accel_settings, iterations, 
         variable_categories, optics_params, weights, add_noise)
         
-        with open(f"{outputfile_dir}/{pickle_name}","wb") as f:
+        with open(f"{outputfile_dir}{pickle_name}","wb") as f:
                 pickle.dump(correction_dict,f)
 
 
@@ -208,15 +206,6 @@ def _scale_correction(weight,correction):
 def _optics_number(opticsfile):
 	return int(opticsfile.split(".")[1])
 	
-
-def _get_beta_star(opticsfile, optics_dir = "/home/eirik/CERN/lhc2018/2018/optic2022/"):
-	file1 = open(f"{optics_dir}{opticsfile}")
-	beta_star = 0
-	for line in file1.readlines():
-		if line.startswith("betx_IP1"):
-			beta_star = line.split(":=")[1].split(";")[0]
-			break
-	return float(beta_star)
 
 def _get_correction_string(base_script, change_dict, model_dir, responsematrix, outputfile_dir, accel_settings, iterations, 
 	variable_categories, optics_params, weights, add_noise):
@@ -297,17 +286,17 @@ def _get_correction_dict(base_script, change_dict,model_dir, responsematrix, out
                 if iteration > 0:
                         with open(f"{outputfile_dir}{CORRECT_FILE}","r") as f:
                                 old_correction = f.read()
-                
+                print(accel_settings)
                 global_correction_entrypoint(**accel_settings,
                                                  model_dir = model_dir,
-                                                 meas_dir=outputfile_dir,
-                                                 variable_categories=variable_categories,
-                                                 fullresponse_path=responsematrix,
-                                                 optics_params=optics_params,
-                                                 output_dir=outputfile_dir,
-                                                 weights=weights,
-                                                 svd_cut=0.01,
-                                                 max_iter=3)
+                                                 meas_dir= outputfile_dir,
+                                                 variable_categories = variable_categories,
+                                                 fullresponse_path = responsematrix,
+                                                 optics_params = optics_params,
+                                                 output_dir = outputfile_dir,
+                                                 weights = weights,
+                                                 svd_cut = 0.01,
+                                                 max_iter = 3)
                 
                 #append previous correction
                 if iteration > 0:
@@ -329,25 +318,6 @@ def _get_correction_dict(base_script, change_dict,model_dir, responsematrix, out
                
                 
                 iteration += 1
-        """
-        FONTSIZE=16
-        import matplotlib.pyplot as plt
-        fig , ax = plt.subplots()
-        for key in correction_dict:
-               df = correction_dict[key]
-               model_df = tfs.read(f"{model_dir}twiss_elements.dat",index="NAME").loc[df.index,:]
-               betx_model = model_df.loc[list(df.index),:][f"BETX"].to_numpy()
-               bb= (df[f"BETX"].to_numpy() - betx_model) / betx_model
-               rms_bb = np.sqrt(np.mean(bb**2)) * 100
-               ax.plot(df["S"],bb,label = f"RMS[%]:{round(rms_bb,1)}")
-
-        ax.legend(fontsize  = FONTSIZE)
-        ax.set_xlabel("position [m]",fontsize  = FONTSIZE)
-        ax.set_ylabel(r"$\Delta \beta_x$",fontsize  = FONTSIZE)
-        plt.savefig(f"plots/test.pdf")
-        plt.show()   
-        
-        """
         return correction_dict
         
 def _beta_tolerance(model_df, corrected_df, max_tol = 0.15, IP_tol = 0.02):
@@ -376,7 +346,7 @@ def _change_value(change_dict, key, value):
 
 def _get_twiss_df(base_script, change_dict, outputfile_dir, assert_list=[]):
         updated_script = _get_updated_script(base_script, change_dict, assert_list=assert_list)
-        madx_wrapper.run_string(updated_script,log_file=f"{outputfile_dir}/madx_log.txt")
+        madx_wrapper.run_string(updated_script,log_file=f"{outputfile_dir}madx_log.txt")
         df = tfs.read(f"{outputfile_dir}twiss.dat",index="NAME")
         return df
 
@@ -435,4 +405,6 @@ def _tfs_converter(model_df, twiss_df, optics_parameters, output_dir):
             write_file = f"{BETA_NAME}{parameter[-1].lower()}{EXT}"
             
         tfs.write(f"{output_dir}{write_file}", new, headers_dict=h_dict, save_index="index_column")
+        
+        
         
