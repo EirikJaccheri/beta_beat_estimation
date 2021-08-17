@@ -33,7 +33,7 @@ install_errors() : macro = {
     EFCOMP, order=1, radius=1, dknr:={ 0, 0.0015 * TGAUSS(3), 0, 0 };
 
     ! B2 errors (from error tables)
-    READMYTABLE, file='/home/eirik/CERN/beta_beat_estimation/base_scripts/MB_B1_6.5TeV.errors', table=errtab;
+    READMYTABLE, file='base_scripts/MB_B1_6.5TeV.errors', table=errtab;
     SETERR, table=errtab;
 
     ! dump errors to file (needed for my analytical calculations but can also be used to reload the

@@ -11,11 +11,8 @@ FONTSIZE = 16
 COLOR_X = u'#1f77b4'
 COLOR_Y = u'#ff7f0e'
 
-"""
-B1_CORRECTOR_PATH copied from:
-/omc3/model/accelerators/lhc/2012/correctors/correctors_b1/beta_correctors.json
-"""	
-B1_CORRECTOR_PATH = "beta_correctors.json" 
+	
+B1_CORRECTOR_PATH = "/afs/cern.ch/eng/sl/lintrack/omc3/omc3/model/accelerators/lhc/2012/correctors/correctors_b1/beta_correctors.json" 
 
 
 	

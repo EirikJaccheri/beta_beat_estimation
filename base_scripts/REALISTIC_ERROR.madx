@@ -1,6 +1,6 @@
 Option, -echo,-warn,-info;
 call,file="%lhc_path/lhc_as-built.seq";
-call,file="%lhc_path/IR7-Run3seqedit.madx";
+call,file="%seqedit";
 call,file="%lhc_path/toolkit/macro.madx";
 call,file="%PROTON%opticsfile";
 Option, echo,warn,info;

@@ -5,7 +5,7 @@ import tfs
 import copy
 import pickle
 import os
-import path
+
 
 import omc3.madx_wrapper as madx_wrapper
 from omc3.global_correction import global_correction_entrypoint
@@ -15,6 +15,8 @@ from omc3.model_creator import create_instance_and_model
 from omc3.optics_measurements.constants import (BETA_NAME, DISPERSION_NAME,
                                                 EXT, NORM_DISP_NAME,
                                                 PHASE_NAME)
+#from omc3.scripts.fake_measurement from model import generate as generate_fake
+
 
 from optics_functions.coupling import coupling_via_cmatrix
 from optics_functions.utils import prepare_twiss_dataframe
@@ -26,11 +28,11 @@ DELTA_Q_MIN = "deltaQmin"
 NAME = "NAME"
 
 
-def create_model_and_response(working_dir, outputfile_dir, model_dir, responsematrix, opticsfile, accel_settings, qx, qy, qx_driven, qy_driven, variable_categories, proton, lhc_path, seqedit = "IR7-Run3seqedit.madx", append_sequedit=False):
+def create_model_and_response(working_dir, outputfile_dir, model_dir, responsematrix, opticsfile, accel_settings, qx, qy, qx_driven, qy_driven, variable_categories, proton, lhc_path, seqedit, append_sequedit=False):
 	#accel settings is bad code..
 	if append_sequedit:
 		modifiers_path = f"{outputfile_dir}modifiers.madx"
-		modifiers_file = f"call,file=\"{lhc_path}{seqedit}\";\n call,file=\"{proton}{opticsfile}\";"
+		modifiers_file = f"call,file=\"{seqedit}\";\n call,file=\"{proton}{opticsfile}\";"
 		with open(modifiers_path,"w") as f:
 			f.write(modifiers_file) 
 	else:
@@ -48,21 +50,16 @@ def create_model_and_response(working_dir, outputfile_dir, model_dir, responsema
 	drv_tunes = [qx_driven, qy_driven],
 	driven_excitation ="acd",
 	dpp = 0.,
-	modifiers = modifiers_path,
-	outputdir = model_dir,
-	writeto= f"{model_dir}job.twiss.madx",
-	logfile= f"{model_dir}madx_log.txt" 
+	modifiers = [Path(modifiers_path).absolute()],
+	outputdir = Path(model_dir).absolute(),
 	)
-	
-	copy_opticsfile=f"cp {modifiers_path} {model_dir}modifiers.madx"
-	os.system(copy_opticsfile)
 
 	create_response_entrypoint(
 		**accel_settings,
-		model_dir = model_dir,
+		model_dir = Path(model_dir).absolute(),
 		delta_k = 0.00002,
 		variable_categories = variable_categories,\
-		outfile_path = responsematrix,
+		outfile_path = Path(responsematrix).absolute(),
 		)
 
 def get_correction_dict(correction_dict_pickle, seeds, opticsfiles_correction, base_script, change_dict, outputfile_dir, accel_settings, variable_categories, QX, QY, add_noise = False, iterations=1, optics_params=["MUX","MUY"],weights=[1.,1.]):
@@ -207,9 +204,8 @@ def _optics_number(opticsfile):
 	return int(opticsfile.split(".")[1])
 	
 
-def _get_correction_string(base_script, change_dict, model_dir, responsematrix, outputfile_dir, accel_settings, iterations, 
-	variable_categories, optics_params, weights, add_noise):
-
+def _get_correction_string(base_script, change_dict, model_dir, responsematrix, outputfile_dir, accel_settings, iterations, variable_categories, optics_params, weights, add_noise):
+		
 	change_dict_local = copy.deepcopy(change_dict)
 	if "opticsfile.180" in model_dir:
 		_change_value(change_dict_local,"%feeddown","0")
@@ -241,15 +237,15 @@ def _get_correction_string(base_script, change_dict, model_dir, responsematrix, 
 		twiss_df  = twiss_df.drop("IP8")                   
 		_tfs_converter(model_df, twiss_df, optics_params, outputfile_dir)	
 		global_correction_entrypoint(**accel_settings,
-				model_dir = model_dir,
-				meas_dir=outputfile_dir,
+				model_dir = Path(model_dir).absolute(),
+				meas_dir=Path(outputfile_dir).absolute(),
 				variable_categories=variable_categories,
-				fullresponse_path=responsematrix,
+				fullresponse_path=Path(responsematrix).absolute(),
 				optics_params=optics_params,
-				output_dir=outputfile_dir,
+				output_dir=Path(outputfile_dir).absolute(),
 				weights=weights,
 				svd_cut=0.01,
-				max_iter=3)
+				max_iter=0)
                                                  	
 		with open(f"{outputfile_dir}{CORRECT_FILE}","a") as f:
 			f.write(old_correction)
@@ -286,18 +282,17 @@ def _get_correction_dict(base_script, change_dict,model_dir, responsematrix, out
                 if iteration > 0:
                         with open(f"{outputfile_dir}{CORRECT_FILE}","r") as f:
                                 old_correction = f.read()
-                print(accel_settings)
+             
                 global_correction_entrypoint(**accel_settings,
-                                                 model_dir = model_dir,
-                                                 meas_dir= outputfile_dir,
+                                                 model_dir = Path(model_dir).absolute(),
+                                                 meas_dir= Path(outputfile_dir).absolute(),
                                                  variable_categories = variable_categories,
-                                                 fullresponse_path = responsematrix,
+                                                 fullresponse_path = Path(responsematrix).absolute(),
                                                  optics_params = optics_params,
-                                                 output_dir = outputfile_dir,
+                                                 output_dir = Path(outputfile_dir).absolute(),
                                                  weights = weights,
                                                  svd_cut = 0.01,
-                                                 max_iter = 3)
-                
+                                                 max_iter = 0)
                 #append previous correction
                 if iteration > 0:
                         with open(f"{outputfile_dir}{CORRECT_FILE}","a") as f:
@@ -382,15 +377,15 @@ def _tfs_converter(model_df, twiss_df, optics_parameters, output_dir):
     kmod_BPMs = ["BPMSW.1L5.B1","BPMSW.1R5.B1","BPMSW.1L1.B1","BPMSW.1R1.B1"]
     for parameter in optics_parameters:
         col = parameter if "MU" not in parameter else f"PHASE{parameter[-1]}"
-        if parameter.startswith("MU"):
+        if parameter.startswith("PHASE"):
             new = tfs.TfsDataFrame(index=twiss_df.index[:-1:])  # ???????
             new[NAME] = twiss_df.index[:-1:]
             new[f"{NAME}2"] = twiss_df.index[1::]
-            new[col] = (twiss_df.loc[new[f"{NAME}2"], parameter].to_numpy() - twiss_df.loc[new[NAME], parameter].to_numpy())
+            new[col] = (twiss_df.loc[new[f"{NAME}2"], f"MU{parameter[-1]}"].to_numpy() - twiss_df.loc[new[NAME], f"MU{parameter[-1]}"].to_numpy())
 		
             new[f"{ERR}{col}"] = np.zeros(len(twiss_df.index) - 1)
             new[f"{ERR}{DELTA}{col}"] = new[f"{ERR}{col}"]
-            new[f"{DELTA}{col}"] = new[col] - (model_df.loc[new[f"{NAME}2"], parameter].to_numpy() - model_df.loc[new[NAME], parameter].to_numpy())
+            new[f"{DELTA}{col}"] = new[col] - (model_df.loc[new[f"{NAME}2"], f"MU{parameter[-1]}"].to_numpy() - model_df.loc[new[NAME], f"MU{parameter[-1]}"].to_numpy())
             write_file = f"{PHASE_NAME}{parameter[-1].lower()}{EXT}"
 
         elif parameter.startswith("BET"):
