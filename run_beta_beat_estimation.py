@@ -16,7 +16,7 @@ from plot_beta_beat_estimation import plot_IP8_optics_change
 
 """following paths must be changed"""
 LHC_PATH = "/afs/cern.ch/eng/lhc/optics/runII/2018" #path to lhc folder
-PROTON = f"/afs/cern.ch/user/s/sfar/public/forTobias/" #folder where opticsfiles are stored
+PROTON = str(Path(f"optics_runIII/").absolute()) + "/" #folder where opticsfiles are stored
 SEQEDIT = "/afs/cern.ch/eng/lhc/optics/runIII/RunIII_dev/IR7-Run3seqedit.madx" #edits sequence from run2 to run3
 
 WORKING_DIR = str((Path(__file__).parent).absolute()) + "/"
